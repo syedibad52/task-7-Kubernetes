@@ -168,4 +168,4 @@ minikube stop
 
 ## GitHub Repository
 
-Link: [Add your GitHub repo link here]
+Link: https://github.com/syedibad52/task-7-Kubernetes

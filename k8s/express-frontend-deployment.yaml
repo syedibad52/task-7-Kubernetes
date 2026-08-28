@@ -16,10 +16,28 @@ spec:
     spec:
       containers:
       - name: express-frontend
-        image: express-frontend:latest
+        image: express-frontend:v1
         imagePullPolicy: Never
         ports:
         - containerPort: 3000
-        env:
-        - name: BACKEND_URL
-          value: "http://flask-backend-service:5000"
+        # health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        # resource limits
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"

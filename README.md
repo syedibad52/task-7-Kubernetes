@@ -1,29 +1,29 @@
-# Kubernetes Assignment - Deploy Flask + Express on Minikube
+# Kubernetes Assignment - Contact Form App
 
-## Project Overview
+i made a simple contact form app and deployed it on kubernetes using minikube. the frontend is express (node.js) and the backend is flask (python). the frontend sends form data to the backend through kubernetes services.
 
-This project deploys a full-stack web application on a local Kubernetes cluster using Minikube.
-- **Frontend**: Express.js (Node.js) - serves a contact form UI
-- **Backend**: Flask (Python) - handles form submissions
+## how it works
 
-The frontend talks to the backend inside the Kubernetes cluster using a ClusterIP service.
+- express frontend runs in one pod, flask backend runs in another pod
+- frontend is exposed using NodePort (port 30001) so we can access it from browser
+- backend uses ClusterIP so only the frontend can talk to it (not accessible from outside)
+- when you fill the form and hit submit, express sends the data to flask using the k8s service name `flask-backend-service`
+- flask processes it and sends back a response
 
----
-
-## Project Structure
+## project structure
 
 ```
 task-7-Kubernetes/
 ├── flask-backend/
-│   ├── app.py
+│   ├── app.py            # flask api
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── express-frontend/
-│   ├── server.js
+│   ├── server.js         # express server
 │   ├── package.json
 │   ├── Dockerfile
 │   ├── views/
-│   │   └── index.ejs
+│   │   └── index.ejs     # the form page
 │   └── public/
 │       └── style.css
 ├── k8s/
@@ -31,141 +31,99 @@ task-7-Kubernetes/
 │   ├── flask-backend-service.yaml
 │   ├── express-frontend-deployment.yaml
 │   └── express-frontend-service.yaml
+├── screenshots/          # screenshots of running app
+├── deploy.sh             # script to deploy everything
 └── README.md
 ```
 
----
+## prerequisites
 
-## Prerequisites
+- docker
+- minikube
+- kubectl
 
-- Docker installed
-- Minikube installed
-- kubectl installed
+## how to deploy
 
----
+### easy way (use the script)
 
-## Step-by-Step Deployment
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
 
-### Step 1: Start Minikube
+this will start minikube, build images, deploy everything and open the app.
 
+### manual way
+
+1. start minikube
 ```bash
 minikube start
 ```
 
-### Step 2: Set Docker to use Minikube's Docker daemon
-
-This is important so that Kubernetes can find our locally built images.
-
+2. set docker to use minikube's docker (important!)
 ```bash
 eval $(minikube docker-env)
 ```
 
-**For Windows PowerShell:**
-```powershell
-minikube docker-env --shell powershell | Invoke-Expression
-```
-
-**For Windows CMD:**
-```cmd
-@FOR /f "tokens=*" %i IN ('minikube docker-env --shell cmd') DO @%i
-```
-
-### Step 3: Build Docker Images
-
-Build the Flask backend image:
+3. build the images
 ```bash
-cd flask-backend
-docker build -t flask-backend:latest .
-cd ..
+docker build -t flask-backend:v1 ./flask-backend
+docker build -t express-frontend:v1 ./express-frontend
 ```
 
-Build the Express frontend image:
+4. deploy to kubernetes
 ```bash
-cd express-frontend
-docker build -t express-frontend:latest .
-cd ..
+kubectl apply -f k8s/
 ```
 
-### Step 4: Apply Kubernetes Manifests
-
-Apply all YAML files:
-```bash
-kubectl apply -f k8s/flask-backend-deployment.yaml
-kubectl apply -f k8s/flask-backend-service.yaml
-kubectl apply -f k8s/express-frontend-deployment.yaml
-kubectl apply -f k8s/express-frontend-service.yaml
-```
-
-### Step 5: Verify Pods are Running
-
+5. check if pods are running
 ```bash
 kubectl get pods
 ```
 
-Expected output (wait a minute if status shows ContainerCreating):
-```
-NAME                                READY   STATUS    RESTARTS   AGE
-flask-backend-xxxx                  1/1     Running   0          30s
-express-frontend-xxxx               1/1     Running   0          30s
-```
-
-### Step 6: Verify Services
-
+6. check services
 ```bash
 kubectl get services
 ```
 
-Expected output:
-```
-NAME                       TYPE        CLUSTER-IP      PORT(S)          AGE
-flask-backend-service      ClusterIP   10.x.x.x        5000/TCP         30s
-express-frontend-service   NodePort    10.x.x.x        3000:30001/TCP   30s
-kubernetes                 ClusterIP   10.96.0.1        443/TCP          5m
-```
-
-### Step 7: Access the Application
-
+7. open the app
 ```bash
 minikube service express-frontend-service
 ```
 
-This will open the contact form in your browser. You can fill the form and submit it - it will send data to the Flask backend running in another pod.
+## screenshots
 
-You can also access it manually:
-```bash
-minikube service express-frontend-service --url
-```
+see the `screenshots/` folder for:
+- kubectl get pods output
+- kubectl get services output
+- the app running in browser
 
----
+## what i learned
 
-## How it Works
+- how to write dockerfiles for python and node apps
+- how kubernetes deployments and services work
+- difference between ClusterIP and NodePort services
+- how pods talk to each other using service names (service discovery)
+- how to set up health checks (liveness and readiness probes) so k8s can monitor pods
+- resource limits to control how much cpu/memory each pod uses
+- using minikube for local kubernetes development
 
-1. Express frontend runs in a pod and is exposed via **NodePort** service (port 30001)
-2. Flask backend runs in a separate pod and is exposed via **ClusterIP** service (internal only)
-3. When user submits the form, Express sends the data to Flask using the Kubernetes service name `flask-backend-service`
-4. Flask processes the data and returns a response
-5. Express shows the result on the page
-
----
-
-## Useful Commands
+## useful commands
 
 ```bash
 # check pod logs
 kubectl logs <pod-name>
 
-# describe a pod (for debugging)
+# debug a pod
 kubectl describe pod <pod-name>
 
-# delete all deployments and services
+# delete everything
 kubectl delete -f k8s/
 
 # stop minikube
 minikube stop
 ```
 
----
+## github
 
-## GitHub Repository
-
-Link: https://github.com/syedibad52/task-7-Kubernetes
+https://github.com/syedibad52/task-7-Kubernetes

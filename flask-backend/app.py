@@ -2,41 +2,38 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # so frontend can talk to us
 
-# home route to check if server is up
+# just a basic home route
 @app.route("/")
 def home():
-    return jsonify({"message": "Flask backend is running!", "status": "ok"})
+    return jsonify({"msg": "backend is up"})
 
-
-# handles form data from express frontend
+# this handles the form data from frontend
 @app.route("/submit", methods=["POST"])
 def submit():
     data = request.get_json()
-    print("received:", data)
 
     name = data.get("name", "")
     email = data.get("email", "")
     message = data.get("message", "")
 
+    # check if anything is empty
     if not name or not email or not message:
-        return jsonify({"success": False, "error": "all fields required"}), 400
+        return jsonify({"success": False, "error": "fill all fields"}), 400
 
-    print(f"Name: {name}, Email: {email}, Msg: {message}")
+    print(f"got form: {name} - {email} - {message}")
 
     return jsonify({
         "success": True,
-        "message": "form submitted successfully!",
+        "message": "got your submission!",
         "data": {"name": name, "email": email, "message": message}
     })
 
-
-# health check
+# health check for kubernetes probes
 @app.route("/health")
 def health():
-    return jsonify({"status": "healthy"})
-
+    return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000)

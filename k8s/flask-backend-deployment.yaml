@@ -16,7 +16,28 @@ spec:
     spec:
       containers:
       - name: flask-backend
-        image: flask-backend:latest
+        image: flask-backend:v1
         imagePullPolicy: Never
         ports:
         - containerPort: 5000
+        # health checks so k8s knows if pod is working
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        # resource limits
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"

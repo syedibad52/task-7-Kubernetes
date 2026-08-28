@@ -3,51 +3,43 @@ const axios = require("axios");
 const path = require("path");
 
 const app = express();
-const PORT = 3000;
 
-// flask backend url - using kubernetes service name
-const BACKEND_URL = process.env.BACKEND_URL || "http://flask-backend-service:5000";
-console.log("using backend url:", BACKEND_URL);
+// backend url - this is the kubernetes service name
+const BACKEND = "http://flask-backend-service:5000";
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// ejs templates
+// using ejs for templates
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// home page
+// show the form
 app.get("/", (req, res) => {
   res.render("index", { response: null, error: null });
 });
 
-// form submit - sends to flask
+// when user submits the form, send it to flask backend
 app.post("/submit", async (req, res) => {
-  const { name, email, message } = req.body;
-  console.log("form data:", name, email, message);
-
   try {
-    const result = await axios.post(BACKEND_URL + "/submit", {
-      name, email, message
+    const result = await axios.post(BACKEND + "/submit", {
+      name: req.body.name,
+      email: req.body.email,
+      message: req.body.message
     });
-    console.log("backend replied:", result.data);
     res.render("index", { response: result.data, error: null });
   } catch (err) {
-    console.log("backend error:", err.message);
-    let errorMsg = "cant connect to backend";
-    if (err.response && err.response.data) {
-      errorMsg = err.response.data.error || errorMsg;
-    }
-    res.render("index", { response: null, error: errorMsg });
+    console.log("error talking to backend:", err.message);
+    res.render("index", { response: null, error: "could not reach backend" });
   }
 });
 
-// health check
+// health check for k8s
 app.get("/health", (req, res) => {
-  res.json({ status: "healthy" });
+  res.json({ status: "ok" });
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log("Express frontend on http://localhost:" + PORT);
+app.listen(3000, "0.0.0.0", () => {
+  console.log("frontend running on port 3000");
 });
